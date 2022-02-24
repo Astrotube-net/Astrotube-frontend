@@ -9,11 +9,14 @@ const registrations = (): Array<string> => {
 };
 
 const updateRegistrations = (data) => {
+  console.log('updateRegistrations: ', data);
   localStorage.setItem('fcm', JSON.stringify(data));
 };
 
 export const addRegistration = (userId: number) => {
+  console.log('addRegistration, userId: ', userId);
   const data = Array.from(new Set(registrations().concat(userId)));
+  console.log('addRegistration, data: ', data);
   updateRegistrations(data);
 };
 
