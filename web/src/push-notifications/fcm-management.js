@@ -5,19 +5,19 @@
  */
 const log = true;
 const registrations = (): Array<string> => {
-  if (window.cordova) return localStorage.getItem('fcm') || [];
+  if (window.cordova) return localStorage.getItem('fcm') || '[]';
   return JSON.parse(localStorage.getItem('fcm') || '[]');
 };
 
 const updateRegistrations = (data) => {
-  if (log) console.log('updateRegistrations: ', data);
+  console.log('updateRegistrations: ', data);
   localStorage.setItem('fcm', JSON.stringify(data));
 };
 
 export const addRegistration = (userId: number) => {
-  if (log) console.log('addRegistration, registrations: ', registrations());
+  console.log('addRegistration, userId: ', userId);
   const data = Array.from(new Set(registrations().concat(userId)));
-  if (log) console.log('addRegistration, data: ', data);
+  console.log('addRegistration, data: ', data);
   updateRegistrations(data);
 };
 
