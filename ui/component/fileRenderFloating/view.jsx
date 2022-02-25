@@ -95,8 +95,8 @@ export default function FileRenderFloating(props: Props) {
 
   const playingUriSource = playingUri && playingUri.source;
   const isComment = playingUriSource === 'comment';
-  const mainFilePlaying = (!isFloating || !isMobile) && primaryUri && isURIEqual(uri, primaryUri);
-  const noFloatingPlayer = !isFloating || isMobile || !floatingPlayerEnabled || hideFloatingPlayer;
+  const mainFilePlaying = !isFloating && primaryUri && isURIEqual(uri, primaryUri);
+  const noFloatingPlayer = !isFloating || !floatingPlayerEnabled || hideFloatingPlayer;
 
   const [fileViewerRect, setFileViewerRect] = React.useState();
   const [wasDragging, setWasDragging] = React.useState(false);
