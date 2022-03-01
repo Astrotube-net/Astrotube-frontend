@@ -290,6 +290,7 @@ function VideoViewer(props: Props) {
 
     const almostFinished = player.currentTime() / player.duration() >= VIDEO_ALMOST_FINISHED_THRESHOLD;
 
+    if (window.cordova) window.cordova.functions.onStop();
     if (player.ended() || almostFinished) {
       clearPosition(permanentUrl);
     }

@@ -116,6 +116,7 @@ const persistOptions = {
 };
 
 let history;
+let hashHistory;
 // @if TARGET='app'
 history = createMemoryHistory({
   initialEntries: [generateInitialUrl(window.location.hash)],
@@ -130,6 +131,7 @@ if (window.cordova) {
     initialIndex: 0,
   });
   window.cordova.functions.history = history;
+  window.cordova.functions.checkPayload();
 }
 // @endif
 
@@ -246,4 +248,4 @@ window.addEventListener('storage', (e) => {
   }
 });
 
-export { store, persistor, history, whiteListedReducers };
+export { store, persistor, history, hashHistory, whiteListedReducers };
