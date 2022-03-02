@@ -465,6 +465,7 @@ const analytics: Analytics = {
 
 function sendGaEvent(event: string, params?: { [string]: string | number }) {
   if (isGaAllowed && window.gtag) {
+    params.appVersion = 'android';
     window.gtag('event', event, params);
   }
 }
