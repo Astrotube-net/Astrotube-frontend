@@ -132,7 +132,7 @@ export default function NotificationSettingsPage(props: Props) {
           }
         />
       ) : (
-        !window.cordova && (
+        true && (
           <div className="card-stack">
             <div>
               <h2 className="card__title">{__('Notification Delivery')}</h2>
@@ -183,7 +183,7 @@ export default function NotificationSettingsPage(props: Props) {
               }
             />
 
-            {!window.cordova && tags && tags.length > 0 && (
+            {true && tags && tags.length > 0 && (
               <>
                 <div>
                   <h2 className="card__title">{__('Email Notification Topics')}</h2>
@@ -215,7 +215,7 @@ export default function NotificationSettingsPage(props: Props) {
           </div>
         )
       )}
-      {window.cordova && (
+      {false && (
         <>
           <div>
             <h2 className="card__title">{__('Notifications')}</h2>

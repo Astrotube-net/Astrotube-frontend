@@ -75,7 +75,12 @@ export default function YoutubeSync(props: Props) {
       return_url: `https://${DOMAIN}/$/${inSignUpFlow ? PAGES.AUTH : PAGES.YOUTUBE_SYNC}`,
     }).then((ytAuthUrl) => {
       // react-router isn't needed since it's a different domain
-      window.location.href = ytAuthUrl;
+      // window.location.href = ytAuthUrl;
+      if (window.cordova) {
+        //var ref = window.open(ytAuthUrl, '_blank', 'location=no')
+        //var ref = window.cordova.InAppBrowser.open(ytAuthUrl, '_blank', 'location=yes');
+        window.cordova.functions.initBrowser(ytAuthUrl);
+      }
     });
   }
 

@@ -281,7 +281,7 @@ function ClaimMenuList(props: Props) {
           {collectionId && isCollectionClaim ? (
             <>
               <MenuItem className="comment__menu-option" onSelect={() => push(`/$/${PAGES.LIST}/${collectionId}`)}>
-                <a className="menu__link" href={`/$/${PAGES.LIST}/${collectionId}`}>
+                <a className="menu__link">
                   <Icon aria-hidden icon={ICONS.VIEW} />
                   {__('View List')}
                 </a>

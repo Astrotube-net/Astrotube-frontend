@@ -3,7 +3,6 @@
  * This module is responsible for persisting information about push notification
  * registrations to local storage.
  */
-
 const registrations = (): Array<string> => {
   if (window.cordova) return localStorage.getItem('fcm') || [];
   return JSON.parse(localStorage.getItem('fcm') || '[]');
