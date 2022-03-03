@@ -142,7 +142,7 @@ export default function NotificationSettingsPage(props: Props) {
               isBodyList
               body={
                 <>
-                  {!window.cordova && enabledEmails && enabledEmails.length > 0 && (
+                  {enabledEmails && enabledEmails.length > 0 && (
                     <>
                       {enabledEmails.map(({ email, isEnabled }) => (
                         <SettingsRow
