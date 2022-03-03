@@ -130,8 +130,8 @@ if (window.cordova) {
     initialEntries: [generateInitialUrl(window.location.hash)],
     initialIndex: 0,
   });
-  window.cordova.functions.history = history;
-  window.cordova.functions.checkPayload();
+  window.odysee.functions.history = history;
+  window.odysee.functions.checkPayload();
 }
 // @endif
 

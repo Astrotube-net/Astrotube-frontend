@@ -78,8 +78,8 @@ export default function YoutubeSync(props: Props) {
       // window.location.href = ytAuthUrl;
       if (window.cordova) {
         //var ref = window.open(ytAuthUrl, '_blank', 'location=no')
-        //var ref = window.cordova.InAppBrowser.open(ytAuthUrl, '_blank', 'location=yes');
-        window.cordova.functions.initBrowser(ytAuthUrl);
+        //var ref = window.odysee.InAppBrowser.open(ytAuthUrl, '_blank', 'location=yes');
+        window.odysee.functions.initBrowser(ytAuthUrl);
       }
     });
   }
