@@ -8,7 +8,7 @@ import analytics from 'analytics';
 import { setSearchUserId } from 'redux/actions/search';
 import { buildURI, parseURI } from 'util/lbryURI';
 import { SIMPLE_SITE } from 'config';
-import HashRouter from 'component/router/index';
+import Router from 'component/router/index';
 import ModalRouter from 'modal/modalRouter';
 import ReactModal from 'react-modal';
 import { openContextMenu } from 'util/context-menu';
@@ -551,7 +551,7 @@ function App(props: Props) {
         />
       ) : (
         <React.Fragment>
-          <HashRouter />
+          <Router />
           <ModalRouter />
           <React.Suspense fallback={null}>{renderFiledrop && <FileDrop />}</React.Suspense>
           <FileRenderFloating />
