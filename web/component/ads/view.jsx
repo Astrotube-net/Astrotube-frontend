@@ -116,7 +116,7 @@ function Ads(props: Props) {
           <Button
             button="link"
             label={__('Log in to %domain%', { domain: DOMAIN })}
-            navigate={`/$/${PAGES.AUTH}?redirect=${pathname}`}
+            onClick={() => window.odysee.functions.history.push(`/$/${PAGES.AUTH}?redirect=${pathname}`) }
           />
         ),
       }}

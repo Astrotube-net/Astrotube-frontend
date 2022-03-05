@@ -2,7 +2,7 @@
 import * as ICONS from 'constants/icons';
 import * as PAGES from 'constants/pages';
 import { SITE_NAME, SIMPLE_SITE, ENABLE_NO_SOURCE_CLAIMS, SHOW_ADS } from 'config';
-import Ads, { injectAd } from 'web/component/ads';
+// import Ads, { injectAd } from 'web/component/ads';
 import React, { useState } from 'react';
 import Page from 'component/page';
 import Button from 'component/button';
@@ -140,9 +140,9 @@ function HomePage(props: Props) {
   }, []);
 
   React.useEffect(() => {
-    const shouldShowAds = SHOW_ADS && !authenticated;
+    // const shouldShowAds = SHOW_ADS && !authenticated;
     // inject ad into last visible card
-    injectAd(shouldShowAds);
+    // injectAd(shouldShowAds);
   }, []);
 
   const [hasScheduledStreams, setHasScheduledStreams] = useState(false);
@@ -167,7 +167,7 @@ function HomePage(props: Props) {
 
       {/* @if TARGET='web' */}
       {SIMPLE_SITE && <Meme />}
-      <Ads type="homepage" />
+      {false && (<Ads type="homepage" />)}
       {/* @endif */}
 
       {!fetchingActiveLivestreams && (

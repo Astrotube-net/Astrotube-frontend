@@ -4,7 +4,7 @@ import React from 'react';
 import ClaimList from 'component/claimList';
 import ClaimListDiscover from 'component/claimListDiscover';
 import Spinner from 'component/spinner';
-import Ads from 'web/component/ads';
+// import Ads from 'web/component/ads';
 import Card from 'component/common/card';
 import { useIsMobile, useIsMediumScreen } from 'effects/use-screensize';
 import Button from 'component/button';
@@ -135,7 +135,7 @@ export default React.memo<Props>(function RecommendedContent(props: Props) {
               hideMenu={isMobile}
               // TODO: Since 'triggerBlacklist' is handled by clients of <Ads> instead of internally by <Ads>, we don't
               // need that parameter and can just not mount it when 'true', instead of mount-then-hide.
-              injectedItem={injectAds && <Ads small type={'video'} triggerBlacklist={triggerBlacklist} />}
+              // injectedItem={injectAds && <Ads small type={'video'} triggerBlacklist={triggerBlacklist} />}
               empty={__('No related content found')}
               onClick={handleRecommendationClicked}
             />
@@ -154,7 +154,7 @@ export default React.memo<Props>(function RecommendedContent(props: Props) {
               channelIds={[signingChannel.claim_id]}
               loading={isSearching}
               hideMenu={isMobile}
-              injectedItem={SHOW_ADS && IS_WEB && !isAuthenticated && <Ads small type={'video'} />}
+              // injectedItem={SHOW_ADS && IS_WEB && !isAuthenticated && <Ads small type={'video'} />}
               empty={__('No related content found')}
             />
           )}

@@ -55,6 +55,8 @@ export default function LivestreamPage(props: Props) {
   const isCurrentClaimLive = isChannelBroadcasting && activeLivestreamForChannel.claimId === claimId;
   const livestreamChannelId = channelClaimId || '';
 
+  window.odysee.functions.onStop()
+  
   // $FlowFixMe
   const release = moment.unix(claim.value.release_time);
   const stringifiedClaim = JSON.stringify(claim);
