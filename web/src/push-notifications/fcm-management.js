@@ -4,7 +4,6 @@
  * registrations to local storage.
  */
 const registrations = (): Array<string> => {
-  if (window.cordova) return localStorage.getItem('fcm') || [];
   return JSON.parse(localStorage.getItem('fcm') || '[]');
 };
 
@@ -18,6 +17,7 @@ export const addRegistration = (userId: number) => {
 };
 
 export const removeRegistration = (userId: number) => {
+  console.log('registrations(): ', registrations())
   const data = registrations().filter((id) => id !== userId);
   updateRegistrations(data);
 };

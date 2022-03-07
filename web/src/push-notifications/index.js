@@ -64,10 +64,14 @@ export default new Proxy(
 );
 
 const subscriptionMetaData = () => {
-  const isMobile = window.navigator.userAgentData?.mobile || false;
-  const browserName = browserData.browser?.name || 'unknown';
-  const osName = browserData.os?.name || 'unknown';
-  return { type: `web-${isMobile ? 'mobile' : 'desktop'}`, name: `${browserName}-${osName}` };
+  if(!window.cordova){
+    const isMobile = window.navigator.userAgentData?.mobile || false;
+    const browserName = browserData.browser?.name || 'unknown';
+    const osName = browserData.os?.name || 'unknown';
+    return { type: `web-${isMobile ? 'mobile' : 'desktop'}`, name: `${browserName}-${osName}` };
+  }else{
+    return { type: 'app-android', name: 'Cordova-Android' };
+  }
 };
 
 const getFcmToken = async (): Promise<string | void> => {
@@ -89,7 +93,7 @@ const subscribe = async (userId: number, permanent: boolean = true): Promise<boo
     if (permanent) addRegistration(userId);
     return true;
   } catch (err) {
-    console.log('FCM Fail: ', err);
+    console.log('subscribe error: ', err);
     return false;
   }
 };
@@ -103,7 +107,8 @@ const unsubscribe = async (userId: number, permanent: boolean = true): Promise<b
     await Lbryio.call('cfm', 'remove', { token: fcmToken });
     if (permanent) removeRegistration(userId);
     return true;
-  } catch {
+  } catch (err) {
+    console.log('subscribe error: ', err);
     return false;
   }
 };
@@ -135,7 +140,9 @@ const validate = async (userId: number) => {
   if (!hasRegistration(userId)) return;
   window.requestIdleCallback(async () => {
     const serverTokens = await Lbryio.call('cfm', 'list');
+    console.log('serverTokens: ', serverTokens);
     const fcmToken = await getFcmToken();
+    console.log('fcmToken: ', fcmToken);
     if (!fcmToken) return;
     const exists = serverTokens.find((item) => item.value === fcmToken);
     if (!exists) {
@@ -144,9 +151,29 @@ const validate = async (userId: number) => {
   });
 };
 
-window.odysee.functions.subscribe = subscribe
-window.odysee.functions.unsubscribe = unsubscribe
-window.odysee.functions.subscribed = subscribed
-window.odysee.functions.reconnect = reconnect
-window.odysee.functions.disconnect = disconnect
-window.odysee.functions.validate = validate
+
+/* DEBUG */
+const removeToken = async (token: string): Promise<boolean> => {
+  console.log('removeToken: ', token)
+  try {
+    await Lbryio.call('cfm', 'remove', { token: token });
+    return true;
+  } catch (err) {
+    console.log('removeToken error: ', err);
+    return false;
+  }
+};
+
+window.odysee.debug = {
+  removeToken: removeToken,
+  subscribe: subscribe,
+  unsubscribe: unsubscribe,
+  subscribed: subscribed,
+  reconnect: reconnect,
+  disconnect: disconnect,
+  validate: validate,
+
+  addRegistration: addRegistration,
+  removeRegistration: removeRegistration,
+  hasRegistration: hasRegistration
+}

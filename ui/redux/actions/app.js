@@ -517,6 +517,7 @@ export function doAnaltyicsPurchaseEvent(fileInfo) {
   };
 }
 
+/*
 reconnect()
 function reconnect() {
   return (getState) => {
@@ -529,6 +530,7 @@ function reconnect() {
     }
   }  
 }
+*/
 
 export function doSignIn() {
   return (dispatch, getState) => {
