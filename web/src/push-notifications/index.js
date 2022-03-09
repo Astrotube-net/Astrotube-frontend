@@ -64,12 +64,12 @@ export default new Proxy(
 );
 
 const subscriptionMetaData = () => {
-  if(!window.cordova){
+  if (!window.cordova) {
     const isMobile = window.navigator.userAgentData?.mobile || false;
     const browserName = browserData.browser?.name || 'unknown';
     const osName = browserData.os?.name || 'unknown';
     return { type: `web-${isMobile ? 'mobile' : 'desktop'}`, name: `${browserName}-${osName}` };
-  }else{
+  } else {
     return { type: 'app-android', name: 'Cordova-Android' };
   }
 };
@@ -82,7 +82,6 @@ const getFcmToken = async (): Promise<string | void> => {
 };
 
 const subscribe = async (userId: number, permanent: boolean = true): Promise<boolean> => {
-  console.log('subscribe: ', userId);
   try {
     var fcmToken = await getFcmToken();
     if (window.cordova) {
@@ -99,7 +98,6 @@ const subscribe = async (userId: number, permanent: boolean = true): Promise<boo
 };
 
 const unsubscribe = async (userId: number, permanent: boolean = true): Promise<boolean> => {
-  console.log('unsubscribe: ', userId)
   try {
     const fcmToken = await getFcmToken();
     if (!fcmToken) return false;
@@ -114,7 +112,6 @@ const unsubscribe = async (userId: number, permanent: boolean = true): Promise<b
 };
 
 const subscribed = async (userId: number): Promise<boolean> => {
-  console.log('subscribed: ', userId)
   const swRegistration = await navigator.serviceWorker?.ready;
   if (!swRegistration || !swRegistration.pushManager) return false;
   const browserSubscriptionExists = (await swRegistration.pushManager.getSubscription()) !== null;
@@ -123,26 +120,21 @@ const subscribed = async (userId: number): Promise<boolean> => {
 };
 
 const reconnect = async (userId: number): Promise<boolean> => {
-  console.log('reconnect: ', userId)
   if (hasRegistration(userId)) return subscribe(userId, false);
   else addRegistration(userId);
   return false;
 };
 
 const disconnect = async (userId: number): Promise<boolean> => {
-  console.log('disconnect: ', userId)
   if (hasRegistration(userId)) return unsubscribe(userId, false);
   return false;
 };
 
 const validate = async (userId: number) => {
-  console.log('validate: ', userId)
   if (!hasRegistration(userId)) return;
   window.requestIdleCallback(async () => {
     const serverTokens = await Lbryio.call('cfm', 'list');
-    console.log('serverTokens: ', serverTokens);
     const fcmToken = await getFcmToken();
-    console.log('fcmToken: ', fcmToken);
     if (!fcmToken) return;
     const exists = serverTokens.find((item) => item.value === fcmToken);
     if (!exists) {
@@ -151,10 +143,9 @@ const validate = async (userId: number) => {
   });
 };
 
-
 /* DEBUG */
+/*
 const removeToken = async (token: string): Promise<boolean> => {
-  console.log('removeToken: ', token)
   try {
     await Lbryio.call('cfm', 'remove', { token: token });
     return true;
@@ -177,3 +168,4 @@ window.odysee.debug = {
   removeRegistration: removeRegistration,
   hasRegistration: hasRegistration
 }
+*/

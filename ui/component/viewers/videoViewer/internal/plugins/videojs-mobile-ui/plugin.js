@@ -8,8 +8,9 @@ const VERSION = '0.4.1';
 // Default options for the plugin.
 const defaults = {
   fullscreen: {
-    enterOnRotate: true,
-    lockOnRotate: true,
+    enterOnRotate: false,
+    exitOnRotate: false,
+    lockOnRotate: false,
     iOS: false,
   },
   touchControls: {
