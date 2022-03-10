@@ -21,12 +21,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import recsys from './plugins/videojs-recsys/plugin';
 // import runAds from './ads';
 import videojs from 'video.js';
-import {
-  LIVESTREAM_LIVE_API,
-  LIVESTREAM_STREAM_X_PULL,
-  LIVESTREAM_CDN_DOMAIN,
-  LIVESTREAM_STREAM_DOMAIN,
-} from 'constants/livestream';
+import { LIVESTREAM_STREAM_X_PULL, LIVESTREAM_CDN_DOMAIN, LIVESTREAM_STREAM_DOMAIN } from 'constants/livestream';
 
 const canAutoplay = require('./plugins/canAutoplay');
 
@@ -89,6 +84,7 @@ type Props = {
   centerPlayButton: () => void,
   isLivestream: boolean,
   claim: StreamClaim,
+  activeLivestreamForChannel: any,
 };
 
 const videoPlaybackRates = [0.25, 0.5, 0.75, 1, 1.1, 1.25, 1.5, 1.75, 2];
@@ -154,6 +150,7 @@ export default React.memo<Props>(function VideoJs(props: Props) {
     centerPlayButton,
     claim,
     isLivestream,
+    // activeLivestreamForChannel,
   } = props;
 
   // get channel claim id for livestream api calls
@@ -334,16 +331,9 @@ export default React.memo<Props>(function VideoJs(props: Props) {
       // $FlowFixMe
       document.querySelector('.vjs-control-bar').style.setProperty('opacity', '1', 'important');
 
-      if (isLivestream) {
+      if (isLivestream && userClaimId) {
         // $FlowFixMe
         vjsPlayer.addClass('livestreamPlayer');
-
-        // $FlowFixMe
-        const livestreamEndpoint = `${LIVESTREAM_LIVE_API}/${userClaimId}`;
-
-        const livestreamResponse = await fetch(livestreamEndpoint, { method: 'GET' });
-
-        const livestreamData = (await livestreamResponse.json()).data;
 
         const livestreamVideoUrl = `https://cdn.odysee.live/hls/${userClaimId}/index.m3u8`;
 
@@ -354,6 +344,7 @@ export default React.memo<Props>(function VideoJs(props: Props) {
           return options;
         };
 
+        // const livestreamData = activeLivestreamForChannel;
         // const newPoster = livestreamData.ThumbnailURL;
 
         // pretty sure it's not working

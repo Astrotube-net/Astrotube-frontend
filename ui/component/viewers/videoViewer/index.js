@@ -1,6 +1,7 @@
 import { connect } from 'react-redux';
 import { selectClaimForUri, selectThumbnailForUri } from 'redux/selectors/claims';
-import { isStreamPlaceholderClaim } from 'util/claim';
+import { isStreamPlaceholderClaim, getChannelIdFromClaim } from 'util/claim';
+import { selectActiveLivestreamForChannel } from 'redux/selectors/livestream';
 import {
   makeSelectNextUrlForCollectionAndUrl,
   makeSelectPreviousUrlForCollectionAndUrl,
@@ -72,6 +73,7 @@ const select = (state, props) => {
     shareTelemetry: IS_WEB || selectDaemonSettings(state).share_usage_data,
     isFloating: makeSelectIsPlayerFloating(props.location)(state),
     videoTheaterMode: selectClientSetting(state, SETTINGS.VIDEO_THEATER_MODE),
+    activeLivestreamForChannel: selectActiveLivestreamForChannel(state, getChannelIdFromClaim(claim)),
     isLivestream,
   };
 };

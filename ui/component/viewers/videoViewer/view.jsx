@@ -68,6 +68,7 @@ type Props = {
   doAnalyticsView: (string, number) => void,
   claimRewards: () => void,
   isLivestream: boolean,
+  activeLivestreamForChannel: any,
 };
 
 /*
@@ -111,6 +112,7 @@ function VideoViewer(props: Props) {
     videoTheaterMode,
     isMarkdownOrComment,
     isLivestream,
+    activeLivestreamForChannel,
   } = props;
 
   const permanentUrl = claim && claim.permanent_url;
@@ -517,6 +519,7 @@ function VideoViewer(props: Props) {
         centerPlayButton={centerPlayButton}
         claim={claim}
         isLivestream={isLivestream}
+        activeLivestreamForChannel={activeLivestreamForChannel}
       />
     </div>
   );

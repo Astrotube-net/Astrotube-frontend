@@ -1,18 +1,9 @@
 // @flow
 import * as ACTIONS from 'constants/action_types';
 import { doClaimSearch } from 'redux/actions/claims';
-import { LIVESTREAM_LIVE_API, LIVESTREAM_STARTS_SOON_BUFFER } from 'constants/livestream';
+import { LIVESTREAM_STARTS_SOON_BUFFER } from 'constants/livestream';
+import { LiveStatus, fetchLiveChannel, fetchLiveChannels } from 'livestream';
 import moment from 'moment';
-
-const LiveStatus = Object.freeze({
-  LIVE: 'LIVE',
-  NOT_LIVE: 'NOT_LIVE',
-  UNKNOWN: 'UNKNOWN',
-});
-
-type LiveStatusType = $Keys<typeof LiveStatus>;
-
-type LiveChannelStatus = { channelStatus: LiveStatusType, channelData?: LivestreamInfo };
 
 export const doFetchNoSourceClaims = (channelId: string) => async (dispatch: Dispatch, getState: GetState) => {
   dispatch({
@@ -45,64 +36,6 @@ export const doFetchNoSourceClaims = (channelId: string) => async (dispatch: Dis
 };
 
 const FETCH_ACTIVE_LIVESTREAMS_MIN_INTERVAL_MS = 5 * 60 * 1000;
-
-const transformLivestreamData = (data: Array<any>): LivestreamInfo => {
-  return data.reduce((acc, curr) => {
-    acc[curr.claimId] = {
-      url: curr.url,
-      type: curr.type,
-      live: curr.live,
-      viewCount: curr.viewCount,
-      creatorId: curr.claimId,
-      startedStreaming: moment(curr.timestamp),
-    };
-    return acc;
-  }, {});
-};
-
-// TODO: change this here
-const fetchLiveChannels = async (): Promise<LivestreamInfo> => {
-  const response = await fetch(LIVESTREAM_LIVE_API);
-  const json = await response.json();
-  if (!json.data) throw new Error();
-  return transformLivestreamData(json.data);
-};
-
-/**
- * Check whether or not the channel is used, used for long polling to display live status on claim viewing page
- * @param channelId
- * @returns {Promise<{channelStatus: string}|{channelData: LivestreamInfo, channelStatus: string}>}
- */
-const fetchLiveChannel = async (channelId: string): Promise<LiveChannelStatus> => {
-  const newApiEndpoint = `${LIVESTREAM_LIVE_API}/`;
-
-  const newApiResponse = await fetch(`${newApiEndpoint}${channelId}`);
-  const newApiData = (await newApiResponse.json()).data;
-  // transform data to old API standard
-  const translatedData = {
-    url: newApiData.url,
-    type: 'application/x-mpegurl',
-    viewCount: newApiData.viewCount,
-    claimId: newApiData.claimId,
-    timestamp: newApiData.timestamp,
-  };
-
-  const isLive = newApiData.live;
-
-  try {
-    // TODO: can remove fully at some point
-    // const response = await fetch(`${LIVESTREAM_LIVE_API}/${channelId}`);
-    // const json = await response.json();
-    if (isLive === false) {
-      return {
-        channelStatus: LiveStatus.NOT_LIVE,
-      };
-    }
-    return { channelStatus: LiveStatus.LIVE, channelData: transformLivestreamData([translatedData]) };
-  } catch {
-    return { channelStatus: LiveStatus.UNKNOWN };
-  }
-};
 
 const filterUpcomingLiveStreamClaims = (upcomingClaims) => {
   const startsSoonMoment = moment().startOf('minute').add(LIVESTREAM_STARTS_SOON_BUFFER, 'minutes');

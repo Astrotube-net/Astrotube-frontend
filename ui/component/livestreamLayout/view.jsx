@@ -96,7 +96,7 @@ export default function LivestreamLayout(props: Props) {
           </div>
         )}
 
-        {activeStreamUri && (
+        {activeStreamUri && activeStreamUri !== uri && (
           <LivestreamLink
             title={__("Click here to access the stream that's currently active")}
             claimUri={activeStreamUri}
