@@ -13,6 +13,7 @@ import React from 'react';
 import { useIsMobile } from 'effects/use-screensize';
 
 const LivestreamChatLayout = lazyImport(() => import('component/livestreamChatLayout' /* webpackChunkName: "chat" */));
+const LIVESTREAM_STATUS_CHECK_INTERVAL = 30000;
 
 function isLivestreamGeoAllowed(channelId: ?string, isLive: boolean) {
   const locale: LocaleInfo = window[SETTINGS.LOCALE];
@@ -41,6 +42,7 @@ type Props = {
   isAuthenticated: boolean,
   uri: string,
   doSetPlayingUri: ({ uri: ?string }) => void,
+  doSetPrimaryUri: (uri: ?string) => void,
   doCommentSocketConnect: (string, string, string) => void,
   doCommentSocketDisconnect: (string, string) => void,
   doFetchChannelLiveStatus: (string) => void,
@@ -57,6 +59,7 @@ export default function LivestreamPage(props: Props) {
     isAuthenticated,
     uri,
     doSetPlayingUri,
+    doSetPrimaryUri,
     doCommentSocketConnect,
     doCommentSocketDisconnect,
     doFetchChannelLiveStatus,
@@ -104,10 +107,13 @@ export default function LivestreamPage(props: Props) {
     };
   }, [claim, uri, doCommentSocketConnect, doCommentSocketDisconnect]);
 
-  // Find out current channels status + active live claim.
+  // Find out current channels status + active live claim every 30 seconds
   React.useEffect(() => {
     doFetchChannelLiveStatus(livestreamChannelId);
-    const intervalId = setInterval(() => doFetchChannelLiveStatus(livestreamChannelId), 30000);
+    const intervalId = setInterval(
+      () => doFetchChannelLiveStatus(livestreamChannelId),
+      LIVESTREAM_STATUS_CHECK_INTERVAL
+    );
     return () => clearInterval(intervalId);
   }, [livestreamChannelId, doFetchChannelLiveStatus]);
 
@@ -166,14 +172,15 @@ export default function LivestreamPage(props: Props) {
   }, [uri, stringifiedClaim, isAuthenticated, doUserSetReferrer]);
 
   React.useEffect(() => {
-    // Set playing uri to null so the popout player doesnt start playing the dummy claim if a user navigates back
-    // This can be removed when we start using the app video player, not a LIVESTREAM iframe
-    doSetPlayingUri({ uri: null });
+    // Set the primary file uri used by playingUri on floating player so
+    // it behaves according to same or different uris
+    doSetPrimaryUri(uri);
 
     return () => {
+      doSetPrimaryUri(null);
       if (isMobile) doSetPlayingUri({ uri: null });
     };
-  }, [doSetPlayingUri, isMobile]);
+  }, [doSetPlayingUri, doSetPrimaryUri, isMobile, uri]);
 
   return (
     <Page
@@ -181,6 +188,7 @@ export default function LivestreamPage(props: Props) {
       noFooter
       livestream
       chatDisabled={hideComments}
+      // whether to display livestream chat
       rightSide={
         !isGeoBlocked &&
         !hideComments &&
