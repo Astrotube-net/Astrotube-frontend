@@ -150,8 +150,12 @@ export default React.memo<Props>(function VideoJs(props: Props) {
     centerPlayButton,
     claim,
     isLivestream,
-    // activeLivestreamForChannel,
+    activeLivestreamForChannel,
   } = props;
+
+  const { url: livestreamVideoUrl } = activeLivestreamForChannel || {};
+  const showLivestreamQualitySelector =
+    !isLivestream || (livestreamVideoUrl && livestreamVideoUrl.includes('/transcode/'));
 
   // get channel claim id for livestream api calls
   const userClaimId = claim && claim.signing_channel && claim.signing_channel.claim_id;
@@ -254,10 +258,12 @@ export default React.memo<Props>(function VideoJs(props: Props) {
 
       Chromecast.initialize(player);
 
-      // Add quality selector to player
-      player.hlsQualitySelector({
-        displayCurrentQuality: true,
-      });
+      if (showLivestreamQualitySelector) {
+        // Add quality selector to player
+        player.hlsQualitySelector({
+          displayCurrentQuality: true,
+        });
+      }
 
       // Add recsys plugin
       if (shareTelemetry) {
@@ -306,6 +312,19 @@ export default React.memo<Props>(function VideoJs(props: Props) {
     return vjs;
   }
 
+  useEffect(() => {
+    if (showLivestreamQualitySelector) {
+      // Add quality selector to player
+      const player = playerRef.current;
+
+      if (player) {
+        player.hlsQualitySelector({
+          displayCurrentQuality: true,
+        });
+      }
+    }
+  }, [showLivestreamQualitySelector]);
+
   /** instantiate videoJS and dispose of it when done with code **/
   // This lifecycle hook is only called once (on mount), or when `isAudio` or `source` changes.
   useEffect(() => {
@@ -335,8 +354,6 @@ export default React.memo<Props>(function VideoJs(props: Props) {
         // $FlowFixMe
         vjsPlayer.addClass('livestreamPlayer');
 
-        const livestreamVideoUrl = `https://cdn.odysee.live/hls/${userClaimId}/index.m3u8`;
-
         videojs.Vhs.xhr.beforeRequest = (options) => {
           if (!options.headers) options.headers = {};
           options.headers['X-Pull'] = LIVESTREAM_STREAM_X_PULL;
@@ -344,7 +361,6 @@ export default React.memo<Props>(function VideoJs(props: Props) {
           return options;
         };
 
-        // const livestreamData = activeLivestreamForChannel;
         // const newPoster = livestreamData.ThumbnailURL;
 
         // pretty sure it's not working
