@@ -32,6 +32,7 @@ type Props = {
   authenticated: boolean,
   videoTheaterMode: boolean,
   isCurrentClaimLive?: boolean,
+  isLivestream: boolean,
   doUriInitiatePlay: (uri: string, collectionId: ?string, isPlayable: boolean) => void,
   doSetPlayingUri: ({ uri: ?string }) => void,
   doSetPrimaryUri: (uri: ?string) => void,
@@ -54,6 +55,7 @@ export default function FileRenderInitiator(props: Props) {
     authenticated,
     videoTheaterMode,
     isCurrentClaimLive,
+    isLivestream,
     doUriInitiatePlay,
     doSetPlayingUri,
     doSetPrimaryUri,
@@ -72,17 +74,19 @@ export default function FileRenderInitiator(props: Props) {
   // check if there is a time or autoplay parameter, if so force autoplay
   const urlTimeParam = href && href.indexOf('t=') > -1;
   const forceAutoplayParam = locationState && locationState.forceAutoplay;
-  const shouldAutoplay = forceAutoplayParam || urlTimeParam || autoplay;
-
+  const isMobileClaimLive = isMobile && isCurrentClaimLive;
+  const shouldAutoplay = forceAutoplayParam || urlTimeParam || autoplay || isCurrentClaimLive;
   const isFree = costInfo && costInfo.cost === 0;
-  const canViewFile = isFree || claimWasPurchased;
+  const canViewFile = isCurrentClaimLive || isFree || claimWasPurchased;
   const isPlayable = RENDER_MODES.FLOATING_MODES.includes(renderMode) || isCurrentClaimLive;
   const isText = RENDER_MODES.TEXT_MODES.includes(renderMode);
-  const isMobileClaimLive = isMobile && isCurrentClaimLive;
   const foundCover = thumbnail !== FileRenderPlaceholder;
 
   const renderUnsupported = RENDER_MODES.UNSUPPORTED_IN_THIS_APP.includes(renderMode);
-  const disabled = renderUnsupported || (!fileInfo && insufficientCredits && !claimWasPurchased);
+  const disabled =
+    (isLivestream && !isCurrentClaimLive) ||
+    renderUnsupported ||
+    (!fileInfo && insufficientCredits && !claimWasPurchased);
   const shouldRedirect = !authenticated && !isFree;
 
   React.useEffect(() => {

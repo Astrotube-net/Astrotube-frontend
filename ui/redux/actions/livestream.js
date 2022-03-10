@@ -1,18 +1,9 @@
 // @flow
 import * as ACTIONS from 'constants/action_types';
 import { doClaimSearch } from 'redux/actions/claims';
-import { LIVESTREAM_LIVE_API, LIVESTREAM_STARTS_SOON_BUFFER } from 'constants/livestream';
+import { LIVESTREAM_STARTS_SOON_BUFFER } from 'constants/livestream';
+import { LiveStatus, fetchLiveChannel, fetchLiveChannels } from 'livestream';
 import moment from 'moment';
-
-const LiveStatus = Object.freeze({
-  LIVE: 'LIVE',
-  NOT_LIVE: 'NOT_LIVE',
-  UNKNOWN: 'UNKNOWN',
-});
-
-type LiveStatusType = $Keys<typeof LiveStatus>;
-
-type LiveChannelStatus = { channelStatus: LiveStatusType, channelData?: LivestreamInfo };
 
 export const doFetchNoSourceClaims = (channelId: string) => async (dispatch: Dispatch, getState: GetState) => {
   dispatch({
@@ -45,36 +36,6 @@ export const doFetchNoSourceClaims = (channelId: string) => async (dispatch: Dis
 };
 
 const FETCH_ACTIVE_LIVESTREAMS_MIN_INTERVAL_MS = 5 * 60 * 1000;
-
-const transformLivestreamData = (data: Array<any>): LivestreamInfo => {
-  return data.reduce((acc, curr) => {
-    acc[curr.claimId] = {
-      live: curr.live,
-      viewCount: curr.viewCount,
-      creatorId: curr.claimId,
-      startedStreaming: moment(curr.timestamp),
-    };
-    return acc;
-  }, {});
-};
-
-const fetchLiveChannels = async (): Promise<LivestreamInfo> => {
-  const response = await fetch(LIVESTREAM_LIVE_API);
-  const json = await response.json();
-  if (!json.data) throw new Error();
-  return transformLivestreamData(json.data);
-};
-
-const fetchLiveChannel = async (channelId: string): Promise<LiveChannelStatus> => {
-  try {
-    const response = await fetch(`${LIVESTREAM_LIVE_API}/${channelId}`);
-    const json = await response.json();
-    if (json.data?.live === false) return { channelStatus: LiveStatus.NOT_LIVE };
-    return { channelStatus: LiveStatus.LIVE, channelData: transformLivestreamData([json.data]) };
-  } catch {
-    return { channelStatus: LiveStatus.UNKNOWN };
-  }
-};
 
 const filterUpcomingLiveStreamClaims = (upcomingClaims) => {
   const startsSoonMoment = moment().startOf('minute').add(LIVESTREAM_STARTS_SOON_BUFFER, 'minutes');
@@ -222,11 +183,13 @@ export const doFetchActiveLivestreams = (orderBy: Array<string> = ['release_time
     const nextOptions = { order_by: orderBy, ...(lang ? { any_languages: lang } : {}) };
     const sameOptions = JSON.stringify(prevOptions) === JSON.stringify(nextOptions);
 
+    // already fetched livestreams within the interval, skip for now
     if (sameOptions && timeDelta < FETCH_ACTIVE_LIVESTREAMS_MIN_INTERVAL_MS) {
       dispatch({ type: ACTIONS.FETCH_ACTIVE_LIVESTREAMS_SKIPPED });
       return;
     }
 
+    // start fetching livestreams
     dispatch({ type: ACTIONS.FETCH_ACTIVE_LIVESTREAMS_STARTED });
 
     try {

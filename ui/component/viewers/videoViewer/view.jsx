@@ -67,6 +67,8 @@ type Props = {
   isMarkdownOrComment: boolean,
   doAnalyticsView: (string, number) => void,
   claimRewards: () => void,
+  isLivestream: boolean,
+  activeLivestreamForChannel: any,
 };
 
 /*
@@ -109,7 +111,10 @@ function VideoViewer(props: Props) {
     previousListUri,
     videoTheaterMode,
     isMarkdownOrComment,
+    isLivestream,
+    activeLivestreamForChannel,
   } = props;
+
   const permanentUrl = claim && claim.permanent_url;
   const adApprovedChannelIds = homepageData ? getAllIds(homepageData) : [];
   const claimId = claim && claim.claim_id;
@@ -181,10 +186,12 @@ function VideoViewer(props: Props) {
 
   // TODO: analytics functionality
   function doTrackingBuffered(e: Event, data: any) {
-    fetch(source, { method: 'HEAD', cache: 'no-store' }).then((response) => {
-      data.playerPoweredBy = response.headers.get('x-powered-by');
-      doAnalyticsBuffer(uri, data);
-    });
+    if (!isLivestream) {
+      fetch(source, { method: 'HEAD', cache: 'no-store' }).then((response) => {
+        data.playerPoweredBy = response.headers.get('x-powered-by');
+        doAnalyticsBuffer(uri, data);
+      });
+    }
   }
 
   const doPlay = useCallback(
@@ -510,6 +517,9 @@ function VideoViewer(props: Props) {
         uri={uri}
         clearPosition={clearPosition}
         centerPlayButton={centerPlayButton}
+        claim={claim}
+        isLivestream={isLivestream}
+        activeLivestreamForChannel={activeLivestreamForChannel}
       />
     </div>
   );
