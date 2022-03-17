@@ -2,13 +2,14 @@
 import * as ICONS from 'constants/icons';
 import * as PAGES from 'constants/pages';
 import { SITE_NAME, SIMPLE_SITE, ENABLE_NO_SOURCE_CLAIMS } from 'config';
-import React, { useState } from 'react';
+import React from 'react';
 import Page from 'component/page';
 import Button from 'component/button';
 import ClaimTilesDiscover from 'component/claimTilesDiscover';
 import ClaimPreviewTile from 'component/claimPreviewTile';
 import Icon from 'component/common/icon';
 import WaitUntilOnPage from 'component/common/wait-until-on-page';
+import RecommendedPersonal from 'component/recommendedPersonal';
 import { useIsLargeScreen } from 'effects/use-screensize';
 import { GetLinksData } from 'util/buildHomepage';
 import { getLivestreamUris } from 'util/livestream';
@@ -21,6 +22,10 @@ import Ads from 'web/component/ads';
 import Meme from 'web/component/meme';
 // @endif
 
+function resolveTitleOverride(title: string) {
+  return title === 'Recent From Following' ? 'Following' : title;
+}
+
 type Props = {
   authenticated: boolean,
   followedTags: Array<Tag>,
@@ -31,6 +36,7 @@ type Props = {
   doFetchActiveLivestreams: () => void,
   fetchingActiveLivestreams: boolean,
   hideScheduledLivestreams: boolean,
+  adBlockerFound: ?boolean,
 };
 
 function HomePage(props: Props) {
@@ -44,12 +50,13 @@ function HomePage(props: Props) {
     doFetchActiveLivestreams,
     fetchingActiveLivestreams,
     hideScheduledLivestreams,
+    adBlockerFound,
   } = props;
+
   const showPersonalizedChannels = (authenticated || !IS_WEB) && subscribedChannels && subscribedChannels.length > 0;
   const showPersonalizedTags = (authenticated || !IS_WEB) && followedTags && followedTags.length > 0;
   const showIndividualTags = showPersonalizedTags && followedTags.length < 5;
   const isLargeScreen = useIsLargeScreen();
-
   const channelIds = subscribedChannels.map((sub) => splitBySeparator(sub.uri)[1]);
 
   const rowData: Array<RowDataItem> = GetLinksData(
@@ -71,6 +78,7 @@ function HomePage(props: Props) {
     icon?: string,
     help?: string,
   };
+
   const SectionHeader = ({ title, navigate = '/', icon = '', help }: SectionHeaderProps) => {
     return (
       <h1 className="claim-grid__header">
@@ -99,7 +107,12 @@ function HomePage(props: Props) {
         hasSource
         prefixUris={getLivestreamUris(activeLivestreams, options.channelIds)}
         pinUrls={pinUrls}
-        injectedItem={index === 0 && { node: <Ads small type="video" tileLayout />, replace: true }}
+        injectedItem={
+          index === 0 && {
+            node: <Ads small type="video" tileLayout />,
+            replace: adBlockerFound === false,
+          }
+        }
       />
     );
 
@@ -110,19 +123,18 @@ function HomePage(props: Props) {
           'show-ribbon': index === 0,
         })}
       >
-        {/* category header */}
-        {index !== 0 && title && typeof title === 'string' && (
-          <SectionHeader title={__(title)} navigate={route || link} icon={icon} help={help} />
+        {title && typeof title === 'string' && (
+          <SectionHeader title={__(resolveTitleOverride(title))} navigate={route || link} icon={icon} help={help} />
         )}
 
         {index === 0 && <>{claimTiles}</>}
+
         {index !== 0 && (
           <WaitUntilOnPage name={title} placeholder={tilePlaceholder} yOffset={800}>
             {claimTiles}
           </WaitUntilOnPage>
         )}
 
-        {/* view more button */}
         {(route || link) && (
           <Button
             className="claim-grid__title--secondary"
@@ -139,9 +151,6 @@ function HomePage(props: Props) {
   React.useEffect(() => {
     doFetchActiveLivestreams();
   }, []);
-
-  const [hasScheduledStreams, setHasScheduledStreams] = useState(false);
-  const scheduledStreamsLoaded = (total) => setHasScheduledStreams(total > 0);
 
   return (
     <Page className="homePage-wrapper" fullWidthPage>
@@ -164,6 +173,8 @@ function HomePage(props: Props) {
       {SIMPLE_SITE && <Meme />}
       {/* @endif */}
 
+      <RecommendedPersonal />
+
       {!fetchingActiveLivestreams && (
         <>
           {authenticated && channelIds.length > 0 && !hideScheduledLivestreams && (
@@ -172,12 +183,7 @@ function HomePage(props: Props) {
               tileLayout
               liveUris={getLivestreamUris(activeLivestreams, channelIds)}
               limitClaimsPerChannel={2}
-              onLoad={scheduledStreamsLoaded}
             />
-          )}
-
-          {authenticated && hasScheduledStreams && !hideScheduledLivestreams && (
-            <SectionHeader title={__('Following')} navigate={`/$/${PAGES.CHANNELS_FOLLOWING}`} icon={ICONS.SUBSCRIBE} />
           )}
         </>
       )}

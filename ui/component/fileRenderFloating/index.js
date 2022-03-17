@@ -1,5 +1,5 @@
 import { connect } from 'react-redux';
-import { selectTitleForUri, makeSelectClaimWasPurchased, selectClaimForUri } from 'redux/selectors/claims';
+import { selectClaimForUri, selectTitleForUri, makeSelectClaimWasPurchased } from 'redux/selectors/claims';
 import { makeSelectStreamingUrlForUri } from 'redux/selectors/file_info';
 import {
   makeSelectNextUrlForCollectionAndUrl,
@@ -17,10 +17,11 @@ import { selectCostInfoForUri } from 'lbryinc';
 import { doUriInitiatePlay, doSetPlayingUri } from 'redux/actions/content';
 import { doFetchRecommendedContent } from 'redux/actions/search';
 import { withRouter } from 'react-router';
-import { getChannelIdFromClaim } from 'util/claim';
 import { selectMobilePlayerDimensions } from 'redux/selectors/app';
-import { selectIsActiveLivestreamForUri } from 'redux/selectors/livestream';
+import { selectIsActiveLivestreamForUri, selectCommentSocketConnected } from 'redux/selectors/livestream';
 import { doSetMobilePlayerDimensions } from 'redux/actions/app';
+import { doCommentSocketConnect, doCommentSocketDisconnect } from 'redux/actions/websocket';
+import { isStreamPlaceholderClaim } from 'util/claim';
 import FileRenderFloating from './view';
 
 const select = (state, props) => {
@@ -29,9 +30,13 @@ const select = (state, props) => {
   const playingUri = selectPlayingUri(state);
   const { uri, collectionId } = playingUri || {};
 
-  const claim = selectClaimForUri(state, uri);
+  const claim = uri && selectClaimForUri(state, uri);
+  const { claim_id: claimId, signing_channel: channelClaim } = claim || {};
+  const { canonical_url: channelUrl } = channelClaim || {};
 
   return {
+    claimId,
+    channelUrl,
     uri,
     playingUri,
     primaryUri: selectPrimaryUri(state),
@@ -47,8 +52,9 @@ const select = (state, props) => {
     previousListUri: collectionId && makeSelectPreviousUrlForCollectionAndUrl(collectionId, uri)(state),
     collectionId,
     isCurrentClaimLive: selectIsActiveLivestreamForUri(state, uri),
-    channelClaimId: claim && getChannelIdFromClaim(claim),
     mobilePlayerDimensions: selectMobilePlayerDimensions(state),
+    socketConnected: selectCommentSocketConnected(state),
+    isLivestreamClaim: isStreamPlaceholderClaim(claim),
   };
 };
 
@@ -57,6 +63,8 @@ const perform = {
   doUriInitiatePlay,
   doSetPlayingUri,
   doSetMobilePlayerDimensions,
+  doCommentSocketConnect,
+  doCommentSocketDisconnect,
 };
 
 export default withRouter(connect(select, perform)(FileRenderFloating));

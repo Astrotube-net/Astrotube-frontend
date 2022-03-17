@@ -577,29 +577,25 @@ body {
 
 .main--livestream {
   @extend .main--file-page;
-  padding: 0;
 
-  @media (min-width: $breakpoint-small) {
-    > * {
-      width: auto;
+  @media (min-width: 1750px) {
+    padding: 0;
+    width: 100%;
+    max-width: var(--page-max-width--filepage);
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr minmax(0, var(--livestream-comments-width));
+    justify-content: space-between;
+    justify-items: end;
+    gap: var(--spacing-m);
+
+    .livestream__chat {
+      margin: 0 !important;
     }
   }
 
   .card-stack {
     margin-bottom: var(--spacing-m);
-
-    @media (min-width: ($breakpoint-large + 300px)) {
-      max-width: calc(var(--page-max-width--filepage) / 1.25);
-      margin-left: auto;
-      margin-right: auto;
-      width: calc(100% - var(--livestream-comments-width));
-    }
-
-    @media (min-width: $breakpoint-medium) and (max-width: ($breakpoint-large + 300px)) {
-      max-width: calc(100vw - var(--livestream-comments-width) - var(--spacing-m) * 3);
-      margin-left: var(--spacing-m);
-      margin-right: var(--spacing-m);
-    }
 
     @media (max-width: $breakpoint-medium) {
       max-width: none;
@@ -620,21 +616,9 @@ body {
     }
   }
 
-  .main__right-side {
-    position: sticky !important;
-    top: 76px !important;
-
-    width: var(--livestream-comments-width);
-    margin-left: var(--spacing-l);
-
-    @media (max-width: $breakpoint-medium) {
-      width: 100%;
-      margin-bottom: var(--spacing-m);
-    }
-  }
-
   @media (max-width: $breakpoint-medium) {
     padding: 0 var(--spacing-s);
+
     .card__main-actions {
       .claim-preview__wrapper {
         a {
@@ -719,11 +703,11 @@ body {
     border-radius: var(--border-radius);
     border-top: unset;
 
-    .settings__row {
+    .settings-row {
       padding: var(--spacing-s);
       border-bottom: 1px solid var(--color-border);
 
-      .settings__row--value {
+      .settings-row__value {
         .button__content {
           &:hover {
             color: var(--color-secondary);
@@ -739,10 +723,10 @@ body {
         }
       }
     }
-    .settings__row:first-of-type {
+    .settings-row:first-of-type {
       margin-top: var(--spacing-xxxs);
     }
-    .settings__row:last-of-type {
+    .settings-row:last-of-type {
       border-bottom: unset;
     }
 
@@ -814,19 +798,19 @@ body {
     margin-left: auto;
     position: relative;
 
-    .settings__row--value {
+    .settings-row__value {
       align-self: start;
     }
 
-    .settings__row--title {
+    .settings-row__title {
       color: rgba(var(--color-text-base), 0.9);
     }
-    .settings__row--subtitle {
+    .settings-row__subtitle {
       color: rgba(var(--color-text-base), 0.6);
     }
 
     &:hover:not(.opacity-30) {
-      .settings__row--title {
+      .settings-row__title {
         color: rgba(var(--color-text-base), 1);
       }
     }

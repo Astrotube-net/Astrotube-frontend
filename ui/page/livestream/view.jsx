@@ -6,31 +6,11 @@ import analytics from 'analytics';
 import LivestreamLayout from 'component/livestreamLayout';
 import moment from 'moment';
 import Page from 'component/page';
-import Yrbl from 'component/yrbl';
-import { GEOBLOCKED_CHANNELS } from 'config';
-import * as SETTINGS from 'constants/settings';
 import React from 'react';
 import { useIsMobile } from 'effects/use-screensize';
+import useFetchLiveStatus from 'effects/use-fetch-live';
 
 const LivestreamChatLayout = lazyImport(() => import('component/livestreamChatLayout' /* webpackChunkName: "chat" */));
-
-function isLivestreamGeoAllowed(channelId: ?string, isLive: boolean) {
-  const locale: LocaleInfo = window[SETTINGS.LOCALE];
-  const geoBlock: GeoBlock = GEOBLOCKED_CHANNELS[channelId];
-
-  if (locale && geoBlock) {
-    const typeBlocked = geoBlock.types && geoBlock.types.includes('livestream');
-    const countryBlocked = geoBlock.countries && geoBlock.countries.includes(locale.country);
-    const europeanUnionOnly = geoBlock.continents && geoBlock.continents.includes('EU-UNION') && locale.is_eu_member;
-    const continentBlocked =
-      europeanUnionOnly || (geoBlock.continents && geoBlock.continents.includes(locale.continent));
-
-    return typeBlocked && !countryBlocked && !continentBlocked;
-  }
-
-  // If 'locale/get' fails, we don't know whether to block or not. Flaw?
-  return true;
-}
 
 type Props = {
   activeLivestreamForChannel: any,
@@ -40,12 +20,14 @@ type Props = {
   claim: StreamClaim,
   isAuthenticated: boolean,
   uri: string,
-  doSetPlayingUri: ({ uri: ?string }) => void,
+  socketConnected: boolean,
+  doSetPrimaryUri: (uri: ?string) => void,
   doCommentSocketConnect: (string, string, string) => void,
-  doCommentSocketDisconnect: (string, string) => void,
   doFetchChannelLiveStatus: (string) => void,
   doUserSetReferrer: (string) => void,
 };
+
+export const LayoutRenderContext = React.createContext<any>();
 
 export default function LivestreamPage(props: Props) {
   const {
@@ -56,9 +38,9 @@ export default function LivestreamPage(props: Props) {
     claim,
     isAuthenticated,
     uri,
-    doSetPlayingUri,
+    socketConnected,
+    doSetPrimaryUri,
     doCommentSocketConnect,
-    doCommentSocketDisconnect,
     doFetchChannelLiveStatus,
     doUserSetReferrer,
   } = props;
@@ -69,13 +51,13 @@ export default function LivestreamPage(props: Props) {
   const [showLivestream, setShowLivestream] = React.useState(false);
   const [showScheduledInfo, setShowScheduledInfo] = React.useState(false);
   const [hideComments, setHideComments] = React.useState(false);
+  const [layountRendered, setLayountRendered] = React.useState(chatDisabled || isMobile);
 
   const isInitialized = Boolean(activeLivestreamForChannel) || activeLivestreamInitialized;
   const isChannelBroadcasting = Boolean(activeLivestreamForChannel);
   const claimId = claim && claim.claim_id;
   const isCurrentClaimLive = isChannelBroadcasting && activeLivestreamForChannel.claimId === claimId;
   const livestreamChannelId = channelClaimId || '';
-  const isGeoBlocked = !isLivestreamGeoAllowed(channelClaimId, isCurrentClaimLive);
 
   // $FlowFixMe
   const release = moment.unix(claim.value.release_time);
@@ -86,30 +68,35 @@ export default function LivestreamPage(props: Props) {
     analytics.playerLoadedEvent('livestream', false);
   }, []);
 
-  // Establish web socket connection for viewer count.
+  const { signing_channel: channelClaim } = claim || {};
+  const { canonical_url: channelUrl } = channelClaim || {};
+
+  // On livestream page, only connect, fileRenderFloating will handle disconnect.
+  // (either by leaving page with floating player off, or by closing the player)
   React.useEffect(() => {
-    if (!claim) return;
+    if (!claim || socketConnected) return;
 
     const { claim_id: claimId, signing_channel: channelClaim } = claim;
-    const channelName = channelClaim && formatLbryChannelName(channelClaim.canonical_url);
+    const channelName = channelClaim && formatLbryChannelName(channelUrl);
 
     if (claimId && channelName) {
       doCommentSocketConnect(uri, channelName, claimId);
     }
 
-    return () => {
-      if (claimId && channelName) {
-        doCommentSocketDisconnect(claimId, channelName);
-      }
-    };
-  }, [claim, uri, doCommentSocketConnect, doCommentSocketDisconnect]);
+    // only listen to socketConnected on initial mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelUrl, claim, doCommentSocketConnect, uri]);
 
-  // Find out current channels status + active live claim.
-  React.useEffect(() => {
-    doFetchChannelLiveStatus(livestreamChannelId);
-    const intervalId = setInterval(() => doFetchChannelLiveStatus(livestreamChannelId), 30000);
-    return () => clearInterval(intervalId);
-  }, [livestreamChannelId, doFetchChannelLiveStatus]);
+  const claimReleaseStartingSoonStatic = () =>
+    release.isBetween(moment(), moment().add(LIVESTREAM_STARTS_SOON_BUFFER, 'minutes'));
+
+  const claimReleaseStartedRecentlyStatic = () =>
+    release.isBetween(moment().subtract(LIVESTREAM_STARTED_RECENTLY_BUFFER, 'minutes'), moment());
+
+  // Find out current channels status + active live claim every 30 seconds (or 15 if not live)
+  const fasterPoll = !isCurrentClaimLive && (claimReleaseStartingSoonStatic() || claimReleaseStartedRecentlyStatic());
+
+  useFetchLiveStatus(livestreamChannelId, doFetchChannelLiveStatus, fasterPoll);
 
   React.useEffect(() => {
     setActiveStreamUri(!isCurrentClaimLive && isChannelBroadcasting ? activeLivestreamForChannel.claimUri : false);
@@ -119,7 +106,6 @@ export default function LivestreamPage(props: Props) {
     if (!isInitialized) return;
 
     const claimReleaseInFuture = () => release.isAfter();
-
     const claimReleaseInPast = () => release.isBefore();
 
     const claimReleaseStartingSoon = () =>
@@ -129,7 +115,9 @@ export default function LivestreamPage(props: Props) {
       release.isBetween(moment().subtract(LIVESTREAM_STARTED_RECENTLY_BUFFER, 'minutes'), moment());
 
     const checkShowLivestream = () =>
-      isChannelBroadcasting && isCurrentClaimLive && (claimReleaseInPast() || claimReleaseStartingSoon());
+      isChannelBroadcasting &&
+      isCurrentClaimLive &&
+      (claimReleaseInPast() || claimReleaseStartingSoon() || claimReleaseInFuture());
 
     const checkShowScheduledInfo = () =>
       (!isChannelBroadcasting && (claimReleaseInFuture() || claimReleaseStartedRecently())) ||
@@ -146,7 +134,7 @@ export default function LivestreamPage(props: Props) {
     };
 
     calculateStreamReleaseState();
-    const intervalId = setInterval(calculateStreamReleaseState, 1000);
+    const intervalId = setInterval(calculateStreamReleaseState, 5000);
 
     if (isCurrentClaimLive && claimReleaseInPast() && isChannelBroadcasting === true) {
       clearInterval(intervalId);
@@ -166,14 +154,12 @@ export default function LivestreamPage(props: Props) {
   }, [uri, stringifiedClaim, isAuthenticated, doUserSetReferrer]);
 
   React.useEffect(() => {
-    // Set playing uri to null so the popout player doesnt start playing the dummy claim if a user navigates back
-    // This can be removed when we start using the app video player, not a LIVESTREAM iframe
-    doSetPlayingUri({ uri: null });
+    if (!layountRendered) return;
 
-    return () => {
-      if (isMobile) doSetPlayingUri({ uri: null });
-    };
-  }, [doSetPlayingUri, isMobile]);
+    doSetPrimaryUri(uri);
+
+    return () => doSetPrimaryUri(null);
+  }, [doSetPrimaryUri, layountRendered, uri]);
 
   return (
     <Page
@@ -182,35 +168,26 @@ export default function LivestreamPage(props: Props) {
       livestream
       chatDisabled={hideComments}
       rightSide={
-        !isGeoBlocked &&
         !hideComments &&
         isInitialized && (
           <React.Suspense fallback={null}>
-            <LivestreamChatLayout uri={uri} />
+            <LivestreamChatLayout uri={uri} setLayountRendered={setLayountRendered} />
           </React.Suspense>
         )
       }
     >
-      {isGeoBlocked && (
-        <div className="main--empty">
-          <Yrbl
-            title={__('This creator has requested that their livestream be blocked in your region.')}
-            type="sad"
-            alwaysShow
+      {isInitialized && (
+        <LayoutRenderContext.Provider value={layountRendered}>
+          <LivestreamLayout
+            uri={uri}
+            hideComments={hideComments}
+            release={release}
+            isCurrentClaimLive={isCurrentClaimLive}
+            showLivestream={showLivestream}
+            showScheduledInfo={showScheduledInfo}
+            activeStreamUri={activeStreamUri}
           />
-        </div>
-      )}
-
-      {isInitialized && !isGeoBlocked && (
-        <LivestreamLayout
-          uri={uri}
-          hideComments={hideComments}
-          release={release}
-          isCurrentClaimLive={isCurrentClaimLive}
-          showLivestream={showLivestream}
-          showScheduledInfo={showScheduledInfo}
-          activeStreamUri={activeStreamUri}
-        />
+        </LayoutRenderContext.Provider>
       )}
     </Page>
   );

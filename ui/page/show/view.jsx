@@ -1,7 +1,7 @@
 // @flow
 import { DOMAIN, ENABLE_NO_SOURCE_CLAIMS } from 'config';
 import * as PAGES from 'constants/pages';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { lazyImport } from 'util/lazyImport';
 import { Redirect, useHistory } from 'react-router-dom';
 import Spinner from 'component/spinner';
@@ -36,10 +36,10 @@ type Props = {
   collection: Collection,
   collectionUrls: Array<string>,
   isResolvingCollection: boolean,
+  geoRestriction: ?GeoRestriction,
   doResolveUri: (uri: string, returnCached: boolean, resolveReposts: boolean, options: any) => void,
   doBeginPublish: (name: ?string) => void,
   doFetchItemsInCollection: ({ collectionId: string }) => void,
-  doAnalyticsView: (uri: string) => void,
 };
 
 export default function ShowPage(props: Props) {
@@ -57,10 +57,10 @@ export default function ShowPage(props: Props) {
     collection,
     collectionUrls,
     isResolvingCollection,
+    geoRestriction,
     doResolveUri,
     doBeginPublish,
     doFetchItemsInCollection,
-    doAnalyticsView,
   } = props;
 
   const { push } = useHistory();
@@ -87,7 +87,7 @@ export default function ShowPage(props: Props) {
     );
 
   // changed this from 'isCollection' to resolve strangers' collections.
-  React.useEffect(() => {
+  useEffect(() => {
     if (collectionId && !resolvedCollection) {
       doFetchItemsInCollection({ collectionId });
     }
@@ -133,16 +133,6 @@ export default function ShowPage(props: Props) {
       );
     }
   }, [doResolveUri, isResolvingUri, canonicalUrl, uri, claimExists, haventFetchedYet, isMine, claimIsPending, search]);
-
-  // Regular claims will call the file/view event when a user actually watches the claim
-  // This can be removed when we get rid of the livestream iframe
-  const [viewTracked, setViewTracked] = useState(false);
-  useEffect(() => {
-    if (showLiveStream && !viewTracked) {
-      doAnalyticsView(uri);
-      setViewTracked(true);
-    }
-  }, [showLiveStream, viewTracked]);
 
   // Don't navigate directly to repost urls
   // Always redirect to the actual content
@@ -226,6 +216,14 @@ export default function ShowPage(props: Props) {
           }
         />
       </Page>
+    );
+  }
+
+  if (geoRestriction) {
+    return (
+      <div className="main--empty">
+        <Yrbl title={__('Content unavailable')} subtitle={__(geoRestriction.message || '')} type="sad" alwaysShow />
+      </div>
     );
   }
 

@@ -32,7 +32,39 @@ declare type User = {
   odysee_live_enabled: boolean,
   odysee_live_disabled: boolean,
   global_mod: boolean,
-  odyseeMembershipsPerClaimIds: ?{},
+  publish_id: ?number,
+  is_odysee_user: boolean,
+  location: ?string,
+};
+
+declare type UserState ={
+  authenticationIsPending: boolean,
+  userIsPending: boolean,
+  emailNewIsPending: boolean,
+  emailNewErrorMessage: string,
+  emailToVerify: string,
+  emailAlreadyExists: boolean,
+  emailDoesNotExist: boolean,
+  resendingVerificationEmail: boolean,
+  passwordResetPending: boolean,
+  passwordResetSuccess: boolean,
+  passwordResetError: ?string,
+  passwordSetPending: boolean,
+  passwordSetSuccess: boolean,
+  passwordSetError: ?string,
+  inviteNewErrorMessage: string,
+  inviteNewIsPending: boolean,
+  inviteStatusIsPending: boolean,
+  invitesRemaining: ?number,
+  invitees: ?Array<string>,
+  referralLink: ?string,
+  referralCode: ?string,
+  user: ?User,
+  youtubeChannelImportPending: boolean,
+  youtubeChannelImportErrorMessage: string,
+  referrerSetIsPending: boolean,
+  referrerSetError: string,
+  odyseeMembershipsPerClaimIds: ?{ [string]: string },
 };
 
 declare type LocaleInfo = {
@@ -40,10 +72,4 @@ declare type LocaleInfo = {
   country: string,
   gdpr_required: boolean,
   is_eu_member: boolean,
-};
-
-declare type GeoBlock = {
-  types: Array<string>,
-  countries: Array<string>,
-  continents: Array<string>,
 };

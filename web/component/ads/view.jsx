@@ -1,8 +1,7 @@
 // @flow
-import { DOMAIN, SHOW_ADS } from 'config';
+import { SHOW_ADS } from 'config';
 import * as PAGES from 'constants/pages';
 import React, { useEffect } from 'react';
-import { withRouter } from 'react-router';
 import I18nMessage from 'component/i18nMessage';
 import Button from 'component/button';
 import classnames from 'classnames';
@@ -33,16 +32,18 @@ const IS_ANDROID = /Android/i.test(navigator.userAgent);
 
 // const isFirefoxAndroid = IS_ANDROID && IS_FIREFOX;
 
+// Internal use only. One-time update flag.
+let ad_blocker_detected;
+
 type Props = {
-  location: { pathname: string },
   type: string,
   tileLayout?: boolean,
   small: boolean,
   claim: Claim,
   isMature: boolean,
-  triggerBlacklist: boolean,
   userHasPremiumPlus: boolean,
   className?: string,
+  doSetAdBlockerFound: (boolean) => void,
 };
 
 function removeIfExists(querySelector) {
@@ -51,7 +52,7 @@ function removeIfExists(querySelector) {
 }
 
 function Ads(props: Props) {
-  const { type = 'video', tileLayout, small, userHasPremiumPlus, className } = props;
+  const { type = 'video', tileLayout, small, userHasPremiumPlus, className, doSetAdBlockerFound } = props;
 
   const [shouldShowAds, setShouldShowAds] = React.useState(resolveAdVisibility());
   const mobileAds = IS_ANDROID || IS_IOS;
@@ -61,23 +62,26 @@ function Ads(props: Props) {
   const adConfig = isInEu ? AD_CONFIGS.EU : mobileAds ? AD_CONFIGS.MOBILE : AD_CONFIGS.DEFAULT;
 
   function resolveAdVisibility() {
-    // 'window.odysee_ad_blocker_detected' will be undefined at startup.
-    // We'll wait until we are sure it is not blocked (i.e. === false) before
-    // showing the component.
-    return window.odysee_ad_blocker_detected === false && SHOW_ADS && !userHasPremiumPlus;
+    // 'ad_blocker_detected' will be undefined at startup. Wait until we are
+    // sure it is not blocked (i.e. === false) before showing the component.
+    return ad_blocker_detected === false && SHOW_ADS && !userHasPremiumPlus;
   }
 
   useEffect(() => {
-    if (window.odysee_ad_blocker_detected === undefined) {
+    if (ad_blocker_detected === undefined) {
       let mounted = true;
       const GOOGLE_AD_URL = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
 
       fetch(GOOGLE_AD_URL)
-        .then(() => {
-          window.odysee_ad_blocker_detected = false;
+        .then((response) => {
+          const detected = response.redirected === true;
+          window.odysee_ad_blocker_detected = detected;
+          ad_blocker_detected = detected;
+          doSetAdBlockerFound(detected);
         })
         .catch(() => {
-          window.odysee_ad_blocker_detected = true;
+          ad_blocker_detected = true;
+          doSetAdBlockerFound(true);
         })
         .finally(() => {
           if (mounted) {
@@ -124,16 +128,12 @@ function Ads(props: Props) {
   const adsSignInDriver = (
     <I18nMessage
       tokens={{
-        log_in_to_domain: (
-          <Button
-            button="link"
-            label={__('Get Odysee Premium+', { domain: DOMAIN })}
-            navigate={`/$/${PAGES.ODYSEE_MEMBERSHIP}`}
-          />
+        sign_up_for_premium: (
+          <Button button="link" label={__('Get Odysee Premium+')} navigate={`/$/${PAGES.ODYSEE_MEMBERSHIP}`} />
         ),
       }}
     >
-      Hate these? %log_in_to_domain% for an ad free experience.
+      Hate these? %sign_up_for_premium% for an ad free experience.
     </I18nMessage>
   );
 
@@ -162,4 +162,4 @@ function Ads(props: Props) {
   return null;
 }
 
-export default withRouter(Ads);
+export default Ads;

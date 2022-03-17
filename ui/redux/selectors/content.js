@@ -18,7 +18,7 @@ import { FORCE_CONTENT_TYPE_PLAYER, FORCE_CONTENT_TYPE_COMIC } from 'constants/c
 const RECENT_HISTORY_AMOUNT = 10;
 const HISTORY_ITEMS_PER_PAGE = 50;
 
-type State = { claims: any, content: any, user: User };
+type State = { claims: any, content: any, user: UserState };
 
 export const selectState = (state: State) => state.content || {};
 
@@ -31,11 +31,11 @@ export const makeSelectIsPlaying = (uri: string) =>
   createSelector(selectPrimaryUri, (primaryUri) => primaryUri === uri);
 
 export const makeSelectIsUriCurrentlyPlaying = (uri: string) =>
-  createSelector(selectPlayingUri, (playingUri) => playingUri && playingUri.uri === uri);
+  createSelector(selectPlayingUri, (playingUri) => playingUri.uri === uri);
 
 export const makeSelectIsPlayerFloating = (location: UrlLocation) =>
   createSelector(selectPrimaryUri, selectPlayingUri, (primaryUri, playingUri) => {
-    if (!playingUri) return false;
+    if (!playingUri.uri) return false;
 
     const { pathname, search } = location;
     const hasSecondarySource = Boolean(playingUri.source);
@@ -106,7 +106,7 @@ export const makeSelectFileRenderModeForUri = (uri: string) =>
     makeSelectMediaTypeForUri(uri),
     makeSelectFileExtensionForUri(uri),
     (contentType, mediaType, extension) => {
-      if (mediaType === 'video' || FORCE_CONTENT_TYPE_PLAYER.includes(contentType)) {
+      if (mediaType === 'video' || FORCE_CONTENT_TYPE_PLAYER.includes(contentType) || mediaType === 'livestream') {
         return RENDER_MODES.VIDEO;
       }
       if (mediaType === 'audio') {

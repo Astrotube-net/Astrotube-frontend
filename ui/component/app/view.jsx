@@ -563,10 +563,12 @@ function App(props: Props) {
         />
       ) : (
         <React.Fragment>
-          <Router />
+            <Router />
           <ModalRouter />
           <React.Suspense fallback={null}>{renderFiledrop && <FileDrop />}</React.Suspense>
+
           <FileRenderFloating />
+
           <React.Suspense fallback={null}>
             {isEnhancedLayout && <Yrbl className="yrbl--enhanced" />}
 

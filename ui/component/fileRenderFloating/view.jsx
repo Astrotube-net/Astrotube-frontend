@@ -11,13 +11,12 @@ import usePersistedState from 'effects/use-persisted-state';
 import { PRIMARY_PLAYER_WRAPPER_CLASS } from 'page/file/view';
 import Draggable from 'react-draggable';
 import { onFullscreenChange } from 'util/full-screen';
-import { generateListSearchUrlParams } from 'util/url';
+import { generateListSearchUrlParams, formatLbryChannelName } from 'util/url';
 import { useIsMobile } from 'effects/use-screensize';
 import debounce from 'util/debounce';
 import { useHistory } from 'react-router';
 import { isURIEqual } from 'util/lbryURI';
 import AutoplayCountdown from 'component/autoplayCountdown';
-import LivestreamIframeRender from 'component/livestreamLayout/iframe-render';
 import usePlayNext from 'effects/use-play-next';
 import { getScreenWidth, getScreenHeight, clampFloatingPlayerToScreen, calculateRelativePos } from './helper-functions';
 
@@ -36,13 +35,15 @@ export const FLOATING_PLAYER_CLASS = 'content__viewer--floating';
 // ****************************************************************************
 
 type Props = {
+  claimId: ?string,
+  channelUrl: ?string,
   isFloating: boolean,
   uri: string,
   streamingUrl?: string,
   title: ?string,
   floatingPlayerEnabled: boolean,
   renderMode: string,
-  playingUri: ?PlayingUri,
+  playingUri: PlayingUri,
   primaryUri: ?string,
   videoTheaterMode: boolean,
   collectionId: string,
@@ -51,17 +52,21 @@ type Props = {
   nextListUri: string,
   previousListUri: string,
   doFetchRecommendedContent: (uri: string) => void,
-  doUriInitiatePlay: (uri: string, collectionId: ?string, isPlayable: ?boolean, isFloating: ?boolean) => void,
+  doUriInitiatePlay: (playingOptions: PlayingUri, isPlayable: ?boolean, isFloating: ?boolean) => void,
   doSetPlayingUri: ({ uri?: ?string }) => void,
-  // mobile only
   isCurrentClaimLive?: boolean,
-  channelClaimId?: any,
   mobilePlayerDimensions?: any,
+  socketConnected: boolean,
+  isLivestreamClaim: boolean,
   doSetMobilePlayerDimensions: ({ height?: ?number, width?: ?number }) => void,
+  doCommentSocketConnect: (string, string, string) => void,
+  doCommentSocketDisconnect: (string, string) => void,
 };
 
 export default function FileRenderFloating(props: Props) {
   const {
+    claimId,
+    channelUrl,
     uri,
     streamingUrl,
     title,
@@ -76,14 +81,16 @@ export default function FileRenderFloating(props: Props) {
     claimWasPurchased,
     nextListUri,
     previousListUri,
+    socketConnected,
+    isLivestreamClaim,
     doFetchRecommendedContent,
     doUriInitiatePlay,
     doSetPlayingUri,
-    // mobile only
     isCurrentClaimLive,
-    channelClaimId,
     mobilePlayerDimensions,
     doSetMobilePlayerDimensions,
+    doCommentSocketConnect,
+    doCommentSocketDisconnect,
   } = props;
 
   const isMobile = useIsMobile();
@@ -93,10 +100,10 @@ export default function FileRenderFloating(props: Props) {
   } = useHistory();
   const hideFloatingPlayer = state && state.hideFloatingPlayer;
 
-  const playingUriSource = playingUri && playingUri.source;
+  const { uri: playingUrl, source: playingUriSource, primaryUri: playingPrimaryUri } = playingUri;
   const isComment = playingUriSource === 'comment';
-  const mainFilePlaying = (!isFloating || !isMobile) && primaryUri && isURIEqual(uri, primaryUri);
-  const noFloatingPlayer = !isFloating || isMobile || !floatingPlayerEnabled || hideFloatingPlayer;
+  const mainFilePlaying = !isFloating && primaryUri && isURIEqual(uri, primaryUri);
+  const noFloatingPlayer = !isFloating || !floatingPlayerEnabled || hideFloatingPlayer;
 
   const [fileViewerRect, setFileViewerRect] = React.useState();
   const [wasDragging, setWasDragging] = React.useState(false);
@@ -110,13 +117,12 @@ export default function FileRenderFloating(props: Props) {
   const relativePosRef = React.useRef({ x: 0, y: 0 });
 
   const navigateUrl =
-    playingUri &&
-    (playingUri.primaryUri || playingUri.uri) + (collectionId ? generateListSearchUrlParams(collectionId) : '');
+    (playingPrimaryUri || playingUrl || '') + (collectionId ? generateListSearchUrlParams(collectionId) : '');
 
   const isFree = costInfo && costInfo.cost === 0;
   const canViewFile = isFree || claimWasPurchased;
   const isPlayable = RENDER_MODES.FLOATING_MODES.includes(renderMode) || isCurrentClaimLive;
-  const isReadyToPlay = isPlayable && streamingUrl;
+  const isReadyToPlay = isCurrentClaimLive || (isPlayable && streamingUrl);
 
   // ****************************************************************************
   // FUNCTIONS
@@ -189,11 +195,28 @@ export default function FileRenderFloating(props: Props) {
     resetState
   );
 
+  // Establish web socket connection for viewer count.
   React.useEffect(() => {
-    if (playingUri && (playingUri.primaryUri || playingUri.uri)) {
+    if (!claimId || !channelUrl || !isCurrentClaimLive) return;
+
+    const channelName = formatLbryChannelName(channelUrl);
+
+    // Only connect if not yet connected, so for example clicked on an embed instead of accessing
+    // from the Livestream page
+    if (!socketConnected) doCommentSocketConnect(uri, channelName, claimId);
+
+    // This will be used to disconnect for every case, since this is the main player component
+    return () => doCommentSocketDisconnect(claimId, channelName);
+
+    // only listen to socketConnected on initial mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelUrl, claimId, doCommentSocketConnect, doCommentSocketDisconnect, isCurrentClaimLive, uri]);
+
+  React.useEffect(() => {
+    if (playingPrimaryUri || playingUrl) {
       handleResize();
     }
-  }, [handleResize, playingUri, videoTheaterMode]);
+  }, [handleResize, playingPrimaryUri, videoTheaterMode, playingUrl]);
 
   // Listen to main-window resizing and adjust the floating player position accordingly:
   React.useEffect(() => {
@@ -251,7 +274,8 @@ export default function FileRenderFloating(props: Props) {
     !isPlayable ||
     !uri ||
     (isFloating && noFloatingPlayer) ||
-    (collectionId && !isFloating && ((!canViewFile && !nextListUri) || countdownCanceled))
+    (collectionId && !isFloating && ((!canViewFile && !nextListUri) || countdownCanceled)) ||
+    (isLivestreamClaim && !isCurrentClaimLive)
   ) {
     return null;
   }
@@ -306,9 +330,9 @@ export default function FileRenderFloating(props: Props) {
           [FLOATING_PLAYER_CLASS]: isFloating,
           'content__viewer--inline': !isFloating,
           'content__viewer--secondary': isComment,
-          'content__viewer--theater-mode': !isFloating && videoTheaterMode && playingUri?.uri === primaryUri,
+          'content__viewer--theater-mode': videoTheaterMode && mainFilePlaying && !isCurrentClaimLive && !isMobile,
           'content__viewer--disable-click': wasDragging,
-          'content__viewer--mobile': isMobile,
+          'content__viewer--mobile': isMobile && !playingUriSource,
         })}
         style={
           !isFloating && fileViewerRect
@@ -316,9 +340,12 @@ export default function FileRenderFloating(props: Props) {
                 width: fileViewerRect.width,
                 height: fileViewerRect.height,
                 left: fileViewerRect.x,
-                top: isMobile
-                  ? HEADER_HEIGHT_MOBILE
-                  : fileViewerRect.windowOffset + fileViewerRect.top - HEADER_HEIGHT - (IS_DESKTOP_MAC ? 24 : 0),
+                top:
+                  isMobile && !playingUriSource
+                    ? HEADER_HEIGHT_MOBILE
+                    : fileViewerRect.windowOffset +
+                      fileViewerRect.top -
+                      (!isMobile ? HEADER_HEIGHT - (IS_DESKTOP_MAC ? 24 : 0) : 0),
               }
             : {}
         }
@@ -334,16 +361,14 @@ export default function FileRenderFloating(props: Props) {
             />
           )}
 
-          {isCurrentClaimLive && channelClaimId ? (
-            <LivestreamIframeRender channelClaimId={channelClaimId} showLivestream mobileVersion />
-          ) : isReadyToPlay ? (
+          {isReadyToPlay ? (
             <FileRender className="draggable" uri={uri} />
           ) : collectionId && !canViewFile ? (
             <div className="content__loading">
               <AutoplayCountdown
                 nextRecommendedUri={nextListUri}
                 doNavigate={() => setDoNavigate(true)}
-                doReplay={() => doUriInitiatePlay(uri, collectionId, false, isFloating)}
+                doReplay={() => doUriInitiatePlay({ uri, collectionId }, false, isFloating)}
                 doPrevious={() => {
                   setPlayNext(false);
                   setDoNavigate(true);

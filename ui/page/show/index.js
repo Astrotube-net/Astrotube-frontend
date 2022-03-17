@@ -10,6 +10,7 @@ import {
   selectClaimIsMine,
   makeSelectClaimIsPending,
   selectIsStreamPlaceholderForUri,
+  selectGeoRestrictionForUri,
 } from 'redux/selectors/claims';
 import {
   makeSelectCollectionForId,
@@ -23,7 +24,6 @@ import { normalizeURI } from 'util/lbryURI';
 import * as COLLECTIONS_CONSTS from 'constants/collections';
 import { selectIsSubscribedForUri } from 'redux/selectors/subscriptions';
 import { selectBlacklistedOutpointMap } from 'lbryinc';
-import { doAnalyticsView } from 'redux/actions/app';
 import ShowPage from './view';
 
 const select = (state, props) => {
@@ -86,6 +86,7 @@ const select = (state, props) => {
     collectionId,
     collectionUrls: makeSelectUrlsForCollectionId(collectionId)(state),
     isResolvingCollection: makeSelectIsResolvingCollectionForId(collectionId)(state),
+    geoRestriction: selectGeoRestrictionForUri(state, uri),
   };
 };
 
@@ -93,7 +94,6 @@ const perform = {
   doResolveUri,
   doBeginPublish,
   doFetchItemsInCollection,
-  doAnalyticsView,
 };
 
 export default withRouter(connect(select, perform)(ShowPage));
